@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bin Locator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        h1 {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .tabs {
+            display: flex;
+            background: #34495e;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            color: white;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        .tab:hover {
+            background: #2c3e50;
+        }
+
+        .tab.active {
+            background: white;
+            color: #2c3e50;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        input, select, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button.danger {
+            background: #e74c3c;
+        }
+
+        button.danger:hover {
+            background: #c0392b;
+        }
+
+        button.secondary {
+            background: #95a5a6;
+        }
+
+        button.secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .separator {
+            height: 1px;
+            background: #ddd;
+            margin: 20px 0;
+        }
+
+        .info-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .pending-list, .show-list {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 150px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #fafafa;
+            margin-bottom: 15px;
+        }
+
+        .pending-item, .show-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .pending-item:hover, .show-item:hover {
+            background: #e3f2fd;
+        }
+
+        .pending-item.selected {
+            background: #2196f3;
+            color: white;
+        }
+
+        .status-bar {
+            background: #ecf0f1;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+
+        .diagram-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .diagram-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .diagram-label {
+            font-size: 32px;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 20px;
+        }
+
+        .diagram-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .diagram-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #4C566A;
+            border-radius: 4px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .diagram-row.highlight {
+            background: #88C0D0;
+            color: #2c3e50;
+        }
+
+        .find-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .find-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗂️ Bin Locator</h1>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('add')">Add Items</button>
+            <button class="tab" onclick="switchTab('find')">Find Location</button>
+        </div>
+
+        <!-- Add Items Tab -->
+        <div id="add-tab" class="tab-content active">
+            <div class="form-row">
+                <label>Bin Letter:</label>
+                <select id="letter-select">
+                    <option value="">-</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                    <option value="F">F</option>
+                </select>
+                
+                <label>Number:</label>
+                <select id="number-select">
+                    <option value="">-</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                </select>
+                
+                <label>Manual:</label>
+                <input type="text" id="manual-bin" placeholder="e.g., A1" maxlength="2">
+                
+                <button onclick="setBin()">Set Bin</button>
+            </div>
+
+            <div class="separator"></div>
+
+            <div class="info-row">
+                <span>Pending codes: <strong id="pending-count">0</strong></span>
+                <span>Bin Capacity: <strong>24</strong></span>
+                <span>In Bin: <strong id="in-bin-count">0</strong></span>
+            </div>
+
+            <div class="pending-list" id="pending-list"></div>
+
+            <div class="form-row">
+                <label>Add code:</label>
+                <input type="text" id="code-input" placeholder="e.g., SM2002" maxlength="6">
+                <button onclick="addCode()">Add</button>
+                <button class="secondary" onclick="removeSelected()">Remove Selected</button>
+            </div>
+
+            <div class="form-row">
+                <button onclick="commit()">Commit (End)</button>
+                <button class="secondary" onclick="clearPending()">Clear Pending</button>
+                <button class="secondary" onclick="exportData()">Export JSON</button>
+                <button class="secondary" onclick="importData()">Import JSON</button>
+                <button class="danger" onclick="resetAll()">Reset All</button>
+            </div>
+
+            <div class="status-bar" id="add-status">Ready</div>
+        </div>
+
+        <!-- Find Location Tab -->
+        <div id="find-tab" class="tab-content">
+            <div class="find-layout">
+                <div>
+                    <div class="form-row">
+                        <label>Enter item code:</label>
+                        <input type="text" id="lookup-input" placeholder="e.g., SM2002" maxlength="6">
+                        <button onclick="searchCode()">Search</button>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label>Result:</label>
+                        <strong id="search-result">—</strong>
+                    </div>
+
+                    <div class="separator"></div>
+
+                    <div class="form-row">
+                        <label>Quick inspect bin:</label>
+                        <input type="text" id="inspect-input" placeholder="e.g., A1" maxlength="2">
+                        <button onclick="showBin()">Show</button>
+                    </div>
+
+                    <div class="show-list" id="show-list"></div>
+                </div>
+
+                <div class="diagram-container">
+                    <div class="diagram-title">Location</div>
+                    <div class="diagram-label" id="diagram-label">—</div>
+                    <div class="diagram-grid" id="diagram-grid"></div>
+                </div>
+            </div>
+
+            <div class="status-bar" id="find-status">Ready</div>
+        </div>
+    </div>
+
+    <input type="file" id="import-file" accept=".json" style="display: none" onchange="handleImport()">
+
+    <script>
+        // Constants
+        const CAPACITY = 24;
+        const BIN_PATTERN = /^[A-F][1-7]$/;
+        const CODE_PATTERN = /^[A-Z]{2}\d{4}$/;
+
+        // State
+        let state = {
+            binToCodes: {},
+            codeToBin: {}
+        };
+        let currentBin = '';
+        let pending = [];
+        let selectedPending = new Set();
+
+        // Initialize
+        function init() {
+            // Create all bins
+            for (let letter of 'ABCDEF') {
+                for (let num = 1; num <= 7; num++) {
+                    state.binToCodes[`${letter}${num}`] = [];
+                }
+            }
+            
+            // Load from localStorage
+            const saved = localStorage.getItem('binLocatorData');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    state = data;
+                    // Ensure all bins exist
+                    for (let letter of 'ABCDEF') {
+                        for (let num = 1; num <= 7; num++) {
+                            const bin = `${letter}${num}`;
+                            if (!state.binToCodes[bin]) {
+                                state.binToCodes[bin] = [];
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to load data:', e);
+                }
+            }
+            
+            // Initialize diagram
+            initDiagram();
+            refresh();
+        }
+
+        // Tab switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            if (tab === 'add') {
+                document.querySelector('.tabs .tab:first-child').classList.add('active');
+                document.getElementById('add-tab').classList.add('active');
+            } else {
+                document.querySelector('.tabs .tab:last-child').classList.add('active');
+                document.getElementById('find-tab').classList.add('active');
+            }
+        }
+
+        // Validation
+        function validateBin(bin) {
+            return BIN_PATTERN.test(bin.trim().toUpperCase());
+        }
+
+        function validateCode(code) {
+            return CODE_PATTERN.test(code.trim().toUpperCase());
+        }
+
+        function normalizeBin(bin) {
+            return bin.trim().toUpperCase();
+        }
+
+        function normalizeCode(code) {
+            return code.trim().toUpperCase();
+        }
+
+        // Bin selection
+        function setBin() {
+            const manual = document.getElementById('manual-bin').value;
+            const letter = document.getElementById('letter-select').value;
+            const number = document.getElementById('number-select').value;
+            
+            let bin = '';
+            if (manual) {
+                bin = manual;
+            } else if (letter && number) {
+                bin = letter + number;
+            }
+            
+            bin = normalizeBin(bin);
+            
+            if (!validateBin(bin)) {
+                setStatus('add', 'Invalid bin. Use A-F + 1-7, e.g., D4.');
+                return;
+            }
+            
+            currentBin = bin;
+            refresh();
+            updateDiagram(currentBin);
+            setStatus('add', `Active bin set to ${currentBin}`);
+        }
+
+        // Add code
+        function addCode() {
+            if (!currentBin) {
+                setStatus('add', 'Pick a bin first (A1..F7).');
+                return;
+            }
+            
+            const input = document.getElementById('code-input');
+            const code = normalizeCode(input.value);
+            
+            if (!validateCode(code)) {
+                setStatus('add', 'Invalid code. Expect two letters + four digits (e.g., SM2002).');
+                return;
+            }
+            
+            if (state.codeToBin[code]) {
+                setStatus('add', `Code ${code} already exists in bin ${state.codeToBin[code]}.`);
+                return;
+            }
+            
+            const currentCount = state.binToCodes[currentBin].length;
+            if (currentCount + pending.length + 1 > CAPACITY) {
+                setStatus('add', `Bin ${currentBin} is at/over capacity (${CAPACITY}).`);
+                return;
+            }
+            
+            if (pending.includes(code)) {
+                setStatus('add', 'That code is already pending.');
+                return;
+            }
+            
+            pending.push(code);
+            input.value = '';
+            renderPending();
+            refresh();
+            setStatus('add', `Added ${code} to pending.`);
+        }
+
+        // Remove selected pending
+        function removeSelected() {
+            pending = pending.filter(code => !selectedPending.has(code));
+            selectedPending.clear();
+            renderPending();
+            refresh();
+            setStatus('add', 'Removed selected pending.');
+        }
+
+        // Clear pending
+        function clearPending() {
+            pending = [];
+            selectedPending.clear();
+            renderPending();
+            refresh();
+            setStatus('add', 'Cleared pending list.');
+        }
+
+        // Commit
+        function commit() {
+            if (!currentBin) {
+                setStatus('add', 'Pick a bin first (A1..F7).');
+                return;
+            }
+            
+            if (pending.length === 0) {
+                setStatus('add', 'Nothing to commit.');
+                return;
+            }
+            
+            const currentCount = state.binToCodes[currentBin].length;
+            if (currentCount + pending.length > CAPACITY) {
+                setStatus('add', `Commit exceeds bin capacity (${CAPACITY}). Remove some pending codes.`);
+                return;
+            }
+            
+            for (const code of pending) {
+                state.binToCodes[currentBin].push(code);
+                state.codeToBin[code] = currentBin;
+            }
+            
+            pending = [];
+            selectedPending.clear();
+            renderPending();
+            refresh();
+            saveState();
+            setStatus('add', 'Saved.');
+        }
+
+        // Search code
+        function searchCode() {
+            const input = document.getElementById('lookup-input');
+            const code = normalizeCode(input.value);
+            
+            if (!code) return;
+            
+            const resultEl = document.getElementById('search-result');
+            
+            if (!validateCode(code)) {
+                resultEl.textContent = '—';
+                setStatus('find', 'Invalid code. Expect LLDDDD.');
+                updateDiagram(null);
+                return;
+            }
+            
+            const bin = state.codeToBin[code];
+            resultEl.textContent = bin || 'Not found';
+            setStatus('find', 'Done.');
+            
+            if (bin) {
+                updateDiagram(bin);
+            } else {
+                updateDiagram(null);
+            }
+        }
+
+        // Show bin contents
+        function showBin() {
+            const input = document.getElementById('inspect-input');
+            const bin = normalizeBin(input.value);
+            
+            const listEl = document.getElementById('show-list');
+            
+            if (!validateBin(bin)) {
+                listEl.innerHTML = '';
+                setStatus('find', 'Invalid bin. Use A1..F7.');
+                updateDiagram(null);
+                return;
+            }
+            
+            const codes = state.binToCodes[bin] || [];
+            const sorted = [...codes].sort();
+            
+            listEl.innerHTML = sorted.map(code => 
+                `<div class="show-item">${code}</div>`
+            ).join('');
+            
+            setStatus('find', `Listed ${sorted.length} codes in ${bin}.`);
+            updateDiagram(bin);
+        }
+
+        // Export/Import
+        function exportData() {
+            const dataStr = JSON.stringify(state, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bin_data.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            setStatus('add', 'Exported to bin_data.json.');
+        }
+
+        function importData() {
+            document.getElementById('import-file').click();
+        }
+
+        function handleImport() {
+            const file = document.getElementById('import-file').files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    // Validate and clean
+                    const cleaned = { binToCodes: {}, codeToBin: {} };
+                    
+                    // Initialize all bins
+                    for (let letter of 'ABCDEF') {
+                        for (let num = 1; num <= 7; num++) {
+                            cleaned.binToCodes[`${letter}${num}`] = [];
+                        }
+                    }
+                    
+                    // Import valid data
+                    for (const [bin, codes] of Object.entries(data.binToCodes || {})) {
+                        if (!validateBin(bin)) continue;
+                        
+                        const validCodes = [];
+                        for (const code of codes) {
+                            const normalized = normalizeCode(String(code));
+                            if (validateCode(normalized) && !cleaned.codeToBin[normalized]) {
+                                validCodes.push(normalized);
+                                cleaned.codeToBin[normalized] = bin;
+                            }
+                        }
+                        cleaned.binToCodes[bin] = validCodes;
+                    }
+                    
+                    state = cleaned;
+                    saveState();
+                    refresh();
+                    setStatus('add', 'Imported from bin_data.json and saved.');
+                } catch (e) {
+                    setStatus('add', `Import failed: ${e.message}`);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Reset
+        function resetAll() {
+            state = { binToCodes: {}, codeToBin: {} };
+            for (let letter of 'ABCDEF') {
+                for (let num = 1; num <= 7; num++) {
+                    state.binToCodes[`${letter}${num}`] = [];
+                }
+            }
+            
+            pending = [];
+            selectedPending.clear();
+            currentBin = '';
+            
+            document.getElementById('manual-bin').value = '';
+            document.getElementById('letter-select').value = '';
+            document.getElementById('number-select').value = '';
+            document.getElementById('inspect-input').value = '';
+            document.getElementById('search-result').textContent = '—';
+            document.getElementById('show-list').innerHTML = '';
+            
+            renderPending();
+            refresh();
+            updateDiagram(null);
+            saveState();
+            setStatus('add', 'Reset complete.');
+        }
+
+        // UI Updates
+        function refresh() {
+            const inBin = currentBin ? state.binToCodes[currentBin].length : 0;
+            document.getElementById('in-bin-count').textContent = inBin;
+            document.getElementById('pending-count').textContent = pending.length;
+        }
+
+        function renderPending() {
+            const listEl = document.getElementById('pending-list');
+            listEl.innerHTML = pending.map(code => {
+                const selected = selectedPending.has(code) ? ' selected' : '';
+                return `<div class="pending-item${selected}" onclick="togglePending('${code}')">${code}</div>`;
+            }).join('');
+        }
+
+        function togglePending(code) {
+            if (selectedPending.has(code)) {
+                selectedPending.delete(code);
+            } else {
+                selectedPending.add(code);
+            }
+            renderPending();
+        }
+
+        function setStatus(tab, message) {
+            document.getElementById(`${tab}-status`).textContent = message;
+        }
+
+        // Diagram
+        function initDiagram() {
+            const grid = document.getElementById('diagram-grid');
+            for (let i = 7; i >= 1; i--) {
+                const row = document.createElement('div');
+                row.className = 'diagram-row';
+                row.id = `diagram-row-${i}`;
+                row.textContent = `Row ${i}`;
+                grid.appendChild(row);
+            }
+        }
+
+        function updateDiagram(bin) {
+            const label = document.getElementById('diagram-label');
+            label.textContent = bin || '—';
+            
+            let highlightRow = null;
+            if (bin && validateBin(bin)) {
+                highlightRow = parseInt(bin[1]);
+            }
+            
+            for (let i = 1; i <= 7; i++) {
+                const row = document.getElementById(`diagram-row-${i}`);
+                if (i === highlightRow) {
+                    row.classList.add('highlight');
+                } else {
+                    row.classList.remove('highlight');
+                }
+            }
+        }
+
+        // Persistence
+        function saveState() {
+            localStorage.setItem('binLocatorData', JSON.stringify(state));
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const activeTab = document.querySelector('.tab-content.active');
+                if (activeTab.id === 'add-tab') {
+                    if (document.activeElement === document.getElementById('code-input')) {
+                        addCode();
+                    }
+                } else if (activeTab.id === 'find-tab') {
+                    if (document.activeElement === document.getElementById('lookup-input')) {
+                        searchCode();
+                    } else if (document.activeElement === document.getElementById('inspect-input')) {
+                        showBin();
+                    }
+                }
+            }
+        });
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
