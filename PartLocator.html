@@ -271,6 +271,7 @@
                     <option value="5">5</option>
                     <option value="6">6</option>
                     <option value="7">7</option>
+                    <option value="8">8</option>
                 </select>
                 
                 <label>Manual:</label>
@@ -349,7 +350,7 @@
     <script>
         // Constants
         const CAPACITY = 24;
-        const BIN_PATTERN = /^[A-F][1-7]$/;
+        const BIN_PATTERN = /^[A-F][1-8]$/;
         const CODE_PATTERN = /^[A-Z]{2}\d{4}$/;
 
         // State
@@ -362,23 +363,28 @@
         let selectedPending = new Set();
 
         // Initialize
-        function init() {
-            // Create all bins
+        async function init() {
+            // Create all bins structure
+            const emptyState = {
+                binToCodes: {},
+                codeToBin: {}
+            };
             for (let letter of 'ABCDEF') {
-                for (let num = 1; num <= 7; num++) {
-                    state.binToCodes[`${letter}${num}`] = [];
+                for (let num = 1; num <= 8; num++) {
+                    emptyState.binToCodes[`${letter}${num}`] = [];
                 }
             }
             
-            // Load from localStorage
-            const saved = localStorage.getItem('binLocatorData');
-            if (saved) {
+            // Try to load from localStorage first (user's personal data)
+            const savedLocal = localStorage.getItem('binLocatorData');
+            
+            if (savedLocal) {
+                // User has saved data, use it
                 try {
-                    const data = JSON.parse(saved);
-                    state = data;
+                    state = JSON.parse(savedLocal);
                     // Ensure all bins exist
                     for (let letter of 'ABCDEF') {
-                        for (let num = 1; num <= 7; num++) {
+                        for (let num = 1; num <= 8; num++) {
                             const bin = `${letter}${num}`;
                             if (!state.binToCodes[bin]) {
                                 state.binToCodes[bin] = [];
@@ -386,7 +392,35 @@
                         }
                     }
                 } catch (e) {
-                    console.error('Failed to load data:', e);
+                    console.error('Failed to load localStorage:', e);
+                    state = emptyState;
+                }
+            } else {
+                // No localStorage - try loading default data from server
+                try {
+                    const response = await fetch('data.json');
+                    if (response.ok) {
+                        const defaultData = await response.json();
+                        state = defaultData;
+                        // Ensure all bins exist
+                        for (let letter of 'ABCDEF') {
+                            for (let num = 1; num <= 8; num++) {
+                                const bin = `${letter}${num}`;
+                                if (!state.binToCodes[bin]) {
+                                    state.binToCodes[bin] = [];
+                                }
+                            }
+                        }
+                        // Save to localStorage so user can modify
+                        localStorage.setItem('binLocatorData', JSON.stringify(state));
+                        console.log('Loaded default data from data.json');
+                    } else {
+                        // No default data file, start empty
+                        state = emptyState;
+                    }
+                } catch (e) {
+                    // Fetch failed (offline or no data.json), start empty
+                    state = emptyState;
                 }
             }
             
@@ -442,7 +476,7 @@
             bin = normalizeBin(bin);
             
             if (!validateBin(bin)) {
-                setStatus('add', 'Invalid bin. Use A-F + 1-7, e.g., D4.');
+                setStatus('add', 'Invalid bin. Use A-F + 1-8, e.g., D4.');
                 return;
             }
             
@@ -455,7 +489,7 @@
         // Add code
         function addCode() {
             if (!currentBin) {
-                setStatus('add', 'Pick a bin first (A1..F7).');
+                setStatus('add', 'Pick a bin first (A1..F8).');
                 return;
             }
             
@@ -511,7 +545,7 @@
         // Commit
         function commit() {
             if (!currentBin) {
-                setStatus('add', 'Pick a bin first (A1..F7).');
+                setStatus('add', 'Pick a bin first (A1..F8).');
                 return;
             }
             
@@ -575,7 +609,7 @@
             
             if (!validateBin(bin)) {
                 listEl.innerHTML = '';
-                setStatus('find', 'Invalid bin. Use A1..F7.');
+                setStatus('find', 'Invalid bin. Use A1..F8.');
                 updateDiagram(null);
                 return;
             }
@@ -622,7 +656,7 @@
                     
                     // Initialize all bins
                     for (let letter of 'ABCDEF') {
-                        for (let num = 1; num <= 7; num++) {
+                        for (let num = 1; num <= 8; num++) {
                             cleaned.binToCodes[`${letter}${num}`] = [];
                         }
                     }
@@ -655,29 +689,10 @@
 
         // Reset
         function resetAll() {
-            state = { binToCodes: {}, codeToBin: {} };
-            for (let letter of 'ABCDEF') {
-                for (let num = 1; num <= 7; num++) {
-                    state.binToCodes[`${letter}${num}`] = [];
-                }
+            if (confirm('Reset ALL data? This will delete everything and reload defaults.')) {
+                localStorage.removeItem('binLocatorData');
+                location.reload(); // Reload page to fetch data.json again
             }
-            
-            pending = [];
-            selectedPending.clear();
-            currentBin = '';
-            
-            document.getElementById('manual-bin').value = '';
-            document.getElementById('letter-select').value = '';
-            document.getElementById('number-select').value = '';
-            document.getElementById('inspect-input').value = '';
-            document.getElementById('search-result').textContent = '—';
-            document.getElementById('show-list').innerHTML = '';
-            
-            renderPending();
-            refresh();
-            updateDiagram(null);
-            saveState();
-            setStatus('add', 'Reset complete.');
         }
 
         // UI Updates
@@ -711,7 +726,7 @@
         // Diagram
         function initDiagram() {
             const grid = document.getElementById('diagram-grid');
-            for (let i = 7; i >= 1; i--) {
+            for (let i = 8; i >= 1; i--) {
                 const row = document.createElement('div');
                 row.className = 'diagram-row';
                 row.id = `diagram-row-${i}`;
@@ -729,7 +744,7 @@
                 highlightRow = parseInt(bin[1]);
             }
             
-            for (let i = 1; i <= 7; i++) {
+            for (let i = 1; i <= 8; i++) {
                 const row = document.getElementById(`diagram-row-${i}`);
                 if (i === highlightRow) {
                     row.classList.add('highlight');
