@@ -265,7 +265,7 @@
             .find-layout {
                 grid-template-columns: 1fr;
             }
-            
+
             .form-row {
                 flex-direction: column;
                 align-items: flex-start;
@@ -276,7 +276,7 @@
 <body>
     <div class="container">
         <h1>🌪️ Row Locator</h1>
-        
+
         <div class="tabs">
             <button class="tab active" onclick="switchTab('add')">Modify Rows</button>
             <button class="tab" onclick="switchTab('find')">Find Location</button>
@@ -295,7 +295,7 @@
                     <option value="E">E</option>
                     <option value="F">F</option>
                 </select>
-                
+
                 <label>Row:</label>
                 <select id="number-select">
                     <option value="">-</option>
@@ -308,11 +308,11 @@
                     <option value="7">7</option>
                     <option value="8">8</option>
                 </select>
-                
+
                 <label>Manual:</label>
                 <input type="text" id="manual-bin" placeholder="e.g., A1" maxlength="2">
-                
-                <button onclick="setBin()">Set Row</button>
+
+                <button onclick="setRow()">Set Row</button>
             </div>
 
             <div class="separator"></div>
@@ -360,7 +360,7 @@
                         <input type="text" id="lookup-input" placeholder="e.g., SM2002" maxlength="6">
                         <button onclick="searchCode()">Search</button>
                     </div>
-                    
+
                     <div class="form-row">
                         <label>Result:</label>
                         <strong id="search-result">—</strong>
@@ -371,7 +371,7 @@
                     <div class="form-row">
                         <label>Quick inspect row:</label>
                         <input type="text" id="inspect-input" placeholder="e.g., A1" maxlength="2">
-                        <button onclick="showBin()">Show</button>
+                        <button onclick="showRow()">Show</button>
                     </div>
 
                     <div class="show-list" id="show-list"></div>
@@ -417,10 +417,10 @@
                     emptyState.rowToCodes[`${letter}${num}`] = [];
                 }
             }
-            
+
             // Try to load from localStorage first (user's personal data)
             const savedLocal = localStorage.getItem('binLocatorData');
-            
+
             if (savedLocal) {
                 // User has saved data, use it
                 try {
@@ -444,13 +444,13 @@
                     const response = await fetch('data.json');
                     if (response.ok) {
                         const defaultData = await response.json();
-                        
+
                         // Support multiple formats: new (rowToCodes), old camelCase (binToCodes), and snake_case
                         state = {
                             rowToCodes: defaultData.rowToCodes || defaultData.binToCodes || defaultData.row_to_codes || defaultData.bin_to_codes || {},
-                            codesToRow: defaultData.codesToRow || defaultData.codeToBin || defaultData.codes_to_row || defaultData.code_to_bin || {}
+                            codesToRow: defaultData.codesToRow || defaultData.codeToRow || defaultData.codes_to_row || defaultData.code_to_bin || {}
                         };
-                        
+
                         // Ensure all rows exist
                         for (let letter of 'ABCDEF') {
                             for (let num = 1; num <= 8; num++) {
@@ -472,7 +472,7 @@
                     state = emptyState;
                 }
             }
-            
+
             // Initialize diagram
             initDiagram();
             renderCurrentContents();
@@ -483,7 +483,7 @@
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            
+
             if (tab === 'add') {
                 document.querySelector('.tabs .tab:first-child').classList.add('active');
                 document.getElementById('add-tab').classList.add('active');
@@ -494,7 +494,7 @@
         }
 
         // Validation
-        function validateBin(row) {
+        function validateRow(row) {
             return BIN_PATTERN.test(row.trim().toUpperCase());
         }
 
@@ -502,7 +502,7 @@
             return CODE_PATTERN.test(code.trim().toUpperCase());
         }
 
-        function normalizeBin(row) {
+        function normalizeRow(row) {
             return row.trim().toUpperCase();
         }
 
@@ -511,63 +511,63 @@
         }
 
         // Row selection
-        function setBin() {
+        function setRow() {
             const manual = document.getElementById('manual-bin').value;
             const letter = document.getElementById('letter-select').value;
             const number = document.getElementById('number-select').value;
-            
+
             let row = '';
             if (manual) {
                 row = manual;
             } else if (letter && number) {
                 row = letter + number;
             }
-            
-            row = normalizeBin(row);
-            
-            if (!validateBin(row)) {
+
+            row = normalizeRow(row);
+
+            if (!validateRow(row)) {
                 setStatus('add', 'Invalid row. Use A-F + 1-8, e.g., D4.');
                 return;
             }
-            
-            currentBin = row;
+
+            currentRow = row;
             refresh();
             renderCurrentContents();
-            updateDiagram(currentBin);
-            setStatus('add', `Active row set to ${currentBin}`);
+            updateDiagram(currentRow);
+            setStatus('add', `Active row set to ${currentRow}`);
         }
 
         // Add code
         function addCode() {
-            if (!currentBin) {
+            if (!currentRow) {
                 setStatus('add', 'Pick a row first (A1..F8).');
                 return;
             }
-            
+
             const input = document.getElementById('code-input');
             const code = normalizeCode(input.value);
-            
+
             if (!validateCode(code)) {
                 setStatus('add', 'Invalid code. Expect two letters + four digits (e.g., SM2002).');
                 return;
             }
-            
+
             if (state.codesToRow[code]) {
                 setStatus('add', `Code ${code} already exists in row ${state.codesToRow[code]}.`);
                 return;
             }
-            
-            const currentCount = state.rowToCodes[currentBin].length;
+
+            const currentCount = state.rowToCodes[currentRow].length;
             if (currentCount + pending.length + 1 > CAPACITY) {
-                setStatus('add', `Row ${currentBin} is at/over capacity (${CAPACITY}).`);
+                setStatus('add', `Row ${currentRow} is at/over capacity (${CAPACITY}).`);
                 return;
             }
-            
+
             if (pending.includes(code)) {
                 setStatus('add', 'That code is already pending.');
                 return;
             }
-            
+
             pending.push(code);
             input.value = '';
             renderPending();
@@ -595,42 +595,42 @@
 
         // Remove from current row
         function removeFromCurrent(code) {
-            if (!currentBin) return;
-            
-            const index = state.rowToCodes[currentBin].indexOf(code);
+            if (!currentRow) return;
+
+            const index = state.rowToCodes[currentRow].indexOf(code);
             if (index > -1) {
-                state.rowToCodes[currentBin].splice(index, 1);
+                state.rowToCodes[currentRow].splice(index, 1);
                 delete state.codesToRow[code];
                 renderCurrentContents();
                 refresh();
                 saveState();
-                setStatus('add', `Removed ${code} from row ${currentBin}.`);
+                setStatus('add', `Removed ${code} from row ${currentRow}.`);
             }
         }
 
         // Commit
         function commit() {
-            if (!currentBin) {
+            if (!currentRow) {
                 setStatus('add', 'Pick a row first (A1..F8).');
                 return;
             }
-            
+
             if (pending.length === 0) {
                 setStatus('add', 'Nothing to commit.');
                 return;
             }
-            
-            const currentCount = state.rowToCodes[currentBin].length;
+
+            const currentCount = state.rowToCodes[currentRow].length;
             if (currentCount + pending.length > CAPACITY) {
                 setStatus('add', `Commit exceeds row capacity (${CAPACITY}). Remove some pending codes.`);
                 return;
             }
-            
+
             for (const code of pending) {
-                state.rowToCodes[currentBin].push(code);
-                state.codesToRow[code] = currentBin;
+                state.rowToCodes[currentRow].push(code);
+                state.codesToRow[code] = currentRow;
             }
-            
+
             pending = [];
             selectedPending.clear();
             renderPending();
@@ -644,15 +644,15 @@
         function searchCode() {
             const input = document.getElementById('lookup-input');
             const code = normalizeCode(input.value);
-            
+
             const resultEl = document.getElementById('search-result');
-            
+
             if (!code) {
                 resultEl.textContent = '—';
                 resultEl.classList.remove('not-found');
                 return;
             }
-            
+
             if (!validateCode(code)) {
                 resultEl.textContent = '—';
                 resultEl.classList.remove('not-found');
@@ -660,9 +660,9 @@
                 updateDiagram(null);
                 return;
             }
-            
+
             const row = state.codesToRow[code];
-            
+
             if (row) {
                 resultEl.textContent = row;
                 resultEl.classList.remove('not-found');
@@ -672,31 +672,31 @@
                 resultEl.classList.add('not-found');
                 updateDiagram(null);
             }
-            
+
             setStatus('find', 'Done.');
         }
 
         // Show row contents
-        function showBin() {
+        function showRow() {
             const input = document.getElementById('inspect-input');
-            const row = normalizeBin(input.value);
-            
+            const row = normalizeRow(input.value);
+
             const listEl = document.getElementById('show-list');
-            
-            if (!validateBin(row)) {
+
+            if (!validateRow(row)) {
                 listEl.innerHTML = '';
                 setStatus('find', 'Invalid row. Use A1..F8.');
                 updateDiagram(null);
                 return;
             }
-            
+
             const codes = state.rowToCodes[row] || [];
             const sorted = [...codes].sort();
-            
-            listEl.innerHTML = sorted.map(code => 
+
+            listEl.innerHTML = sorted.map(code =>
                 `<div class="show-item">${code}</div>`
             ).join('');
-            
+
             setStatus('find', `Listed ${sorted.length} codes in ${row}.`);
             updateDiagram(row);
         }
@@ -721,30 +721,30 @@
         function handleImport() {
             const file = document.getElementById('import-file').files[0];
             if (!file) return;
-            
+
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    
+
                     // Validate and clean
                     const cleaned = { rowToCodes: {}, codesToRow: {} };
-                    
+
                     // Initialize all bins
                     for (let letter of 'ABCDEF') {
                         for (let num = 1; num <= 8; num++) {
                             cleaned.rowToCodes[`${letter}${num}`] = [];
                         }
                     }
-                    
+
                     // Support multiple formats: new (rowToCodes), old camelCase (binToCodes), and snake_case (bin_to_codes/row_to_codes)
                     const rowToCodes = data.rowToCodes || data.binToCodes || data.row_to_codes || data.bin_to_codes || {};
-                    const codesToRow = data.codesToRow || data.codeToBin || data.codes_to_row || data.code_to_bin || {};
-                    
+                    const codesToRow = data.codesToRow || data.codeToRow || data.codes_to_row || data.code_to_bin || {};
+
                     // Import valid data
                     for (const [row, codes] of Object.entries(rowToCodes)) {
-                        if (!validateBin(row)) continue;
-                        
+                        if (!validateRow(row)) continue;
+
                         const validCodes = [];
                         for (const code of codes) {
                             const normalized = normalizeCode(String(code));
@@ -755,7 +755,7 @@
                         }
                         cleaned.rowToCodes[row] = validCodes;
                     }
-                    
+
                     state = cleaned;
                     saveState();
                     refresh();
@@ -778,27 +778,27 @@
 
         // UI Updates
         function refresh() {
-            const inRow = currentBin ? state.rowToCodes[currentBin].length : 0;
+            const inRow = currentRow ? state.rowToCodes[currentRow].length : 0;
             document.getElementById('in-bin-count').textContent = inRow;
             document.getElementById('pending-count').textContent = pending.length;
-            document.getElementById('current-row-name').textContent = currentBin || '—';
+            document.getElementById('current-row-name').textContent = currentRow || '—';
         }
 
         function renderCurrentContents() {
             const listEl = document.getElementById('current-list');
-            if (!currentBin) {
+            if (!currentRow) {
                 listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">Select a row to view contents</div>';
                 return;
             }
-            
-            const codes = state.rowToCodes[currentBin] || [];
-            
+
+            const codes = state.rowToCodes[currentRow] || [];
+
             if (codes.length === 0) {
                 listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">No items in this row</div>';
                 return;
             }
-            
-            listEl.innerHTML = codes.map(code => 
+
+            listEl.innerHTML = codes.map(code =>
                 `<div class="current-item">
                     <span class="current-item-code">${code}</span>
                     <button class="delete-btn" onclick="removeFromCurrent('${code}')">Remove</button>
@@ -842,12 +842,12 @@
         function updateDiagram(row) {
             const label = document.getElementById('diagram-label');
             label.textContent = row || '—';
-            
+
             let highlightRow = null;
-            if (row && validateBin(row)) {
+            if (row && validateRow(row)) {
                 highlightRow = parseInt(row[1]);
             }
-            
+
             for (let i = 1; i <= 8; i++) {
                 const row = document.getElementById(`diagram-row-${i}`);
                 if (i === highlightRow) {
@@ -875,7 +875,7 @@
                     if (document.activeElement === document.getElementById('lookup-input')) {
                         searchCode();
                     } else if (document.activeElement === document.getElementById('inspect-input')) {
-                        showBin();
+                        showRow();
                     }
                 }
             }
