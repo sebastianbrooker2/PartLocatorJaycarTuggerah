@@ -146,6 +146,30 @@
             margin-bottom: 15px;
         }
 
+        /* Make the Current row contents panel resizable */
+        .resizable-panel {
+        resize: vertical;          /* user can drag to resize */
+        min-height: 120px;
+        max-height: 70vh;          /* don’t let it cover the whole page */
+        overflow: auto;            /* show scrollbars when needed */
+        }
+
+        /* Optional one-click expand/collapse */
+        .resizable-panel.expanded {
+        height: 70vh !important;
+        }
+        .expand-btn {
+        padding: 4px 10px;
+        font-size: 12px;
+        background: #7f8c8d;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        }
+        .expand-btn:hover { background:#6c7a7a; }
+
+
         .pending-item, .show-item {
             padding: 8px;
             margin-bottom: 5px;
@@ -155,6 +179,8 @@
             cursor: pointer;
             transition: background 0.2s;
         }
+
+
 
         .current-item {
             padding: 8px 12px;
@@ -285,7 +311,7 @@
         <!-- Modify Rows Tab -->
         <div id="add-tab" class="tab-content active">
             <div class="form-row">
-                <label>Turbine Letter:</label>
+                <label>Turrowe Letter:</label>
                 <select id="letter-select">
                     <option value="">-</option>
                     <option value="A">A</option>
@@ -310,9 +336,9 @@
                 </select>
 
                 <label>Manual:</label>
-                <input type="text" id="manual-bin" placeholder="e.g., A1" maxlength="2">
+                <input type="text" id="manual-row" placeholder="e.g., A1" maxlength="2">
 
-                <button onclick="setBin()">Set Row</button>
+                <button onclick="setRow()">Set Row</button>
             </div>
 
             <div class="separator"></div>
@@ -320,7 +346,17 @@
             <div class="info-row">
                 <span><strong>Current row contents:</strong> <span id="current-row-name">—</span></span>
                 <span>Row Capacity: <strong>24</strong></span>
-                <span>In Row: <strong id="in-bin-count">0</strong></span>
+                <span>In Row: <strong id="in-row-count">0</strong></span>
+                <button class="expand-btn" onclick="toggleCurrentExpand()">Expand</button>
+            </div>
+
+            <div class="pending-list resizable-panel" id="current-list" style="min-height: 100px; max-height: 150px;"></div>
+
+
+            <div class="info-row">
+                <span><strong>Current row contents:</strong> <span id="current-row-name">—</span></span>
+                <span>Row Capacity: <strong>24</strong></span>
+                <span>In Row: <strong id="in-row-count">0</strong></span>
             </div>
 
             <div class="pending-list" id="current-list" style="min-height: 100px; max-height: 150px;"></div>
@@ -371,7 +407,7 @@
                     <div class="form-row">
                         <label>Quick inspect row:</label>
                         <input type="text" id="inspect-input" placeholder="e.g., A1" maxlength="2">
-                        <button onclick="showBin()">Show</button>
+                        <button onclick="showRow()">Show</button>
                     </div>
 
                     <div class="show-list" id="show-list"></div>
@@ -401,7 +437,7 @@
             rowToCodes: {},
             codesToRow: {}
         };
-        let currentBin = '';
+        let currentRow = '';
         let pending = [];
         let selectedPending = new Set();
 
@@ -419,7 +455,7 @@
             }
 
             // Try to load from localStorage first (user's personal data)
-            const savedLocal = localStorage.getItem('binLocatorData');
+            const savedLocal = localStorage.getItem('rowLocatorData');
 
             if (savedLocal) {
                 // User has saved data, use it
@@ -441,14 +477,14 @@
             } else {
                 // No localStorage - try loading default data from server
                 try {
-                    const response = await fetch('data.json');
+                    const response = await fetch('fallback_data.json');
                     if (response.ok) {
                         const defaultData = await response.json();
 
-                        // Support multiple formats: new (rowToCodes), old camelCase (binToCodes), and snake_case
+                        // Support multiple formats: new (rowToCodes), old camelCase (rowToCodes), and snake_case
                         state = {
-                            rowToCodes: defaultData.rowToCodes || defaultData.binToCodes || defaultData.row_to_codes || defaultData.bin_to_codes || {},
-                            codesToRow: defaultData.codesToRow || defaultData.codeToBin || defaultData.codes_to_row || defaultData.code_to_bin || {}
+                            rowToCodes: defaultData.rowToCodes || defaultData.rowToCodes || defaultData.row_to_codes || defaultData.row_to_codes || {},
+                            codesToRow: defaultData.codesToRow || defaultData.codeToRow || defaultData.codes_to_row || defaultData.code_to_row || {}
                         };
 
                         // Ensure all rows exist
@@ -461,14 +497,14 @@
                             }
                         }
                         // Save to localStorage so user can modify
-                        localStorage.setItem('binLocatorData', JSON.stringify(state));
-                        console.log('Loaded default data from data.json');
+                        localStorage.setItem('rowLocatorData', JSON.stringify(state));
+                        console.log('Loaded default data from fallback_data.json');
                     } else {
                         // No default data file, start empty
                         state = emptyState;
                     }
                 } catch (e) {
-                    // Fetch failed (offline or no data.json), start empty
+                    // Fetch failed (offline or no fallback_data.json), start empty
                     state = emptyState;
                 }
             }
@@ -494,7 +530,7 @@
         }
 
         // Validation
-        function validateBin(row) {
+        function validateRow(row) {
             return BIN_PATTERN.test(row.trim().toUpperCase());
         }
 
@@ -502,7 +538,7 @@
             return CODE_PATTERN.test(code.trim().toUpperCase());
         }
 
-        function normalizeBin(row) {
+        function normalizeRow(row) {
             return row.trim().toUpperCase();
         }
 
@@ -510,9 +546,18 @@
             return code.trim().toUpperCase();
         }
 
+        function toggleCurrentExpand() {
+        const el = document.getElementById('current-list');
+        el.classList.toggle('expanded');
+        // update button label
+        const btn = document.querySelector('.expand-btn');
+        if (btn) btn.textContent = el.classList.contains('expanded') ? 'Collapse' : 'Expand';
+        }
+
+
         // Row selection
-        function setBin() {
-            const manual = document.getElementById('manual-bin').value;
+        function setRow() {
+            const manual = document.getElementById('manual-row').value;
             const letter = document.getElementById('letter-select').value;
             const number = document.getElementById('number-select').value;
 
@@ -523,23 +568,23 @@
                 row = letter + number;
             }
 
-            row = normalizeBin(row);
+            row = normalizeRow(row);
 
-            if (!validateBin(row)) {
+            if (!validateRow(row)) {
                 setStatus('add', 'Invalid row. Use A-F + 1-8, e.g., D4.');
                 return;
             }
 
-            currentBin = row;
+            currentRow = row;
             refresh();
             renderCurrentContents();
-            updateDiagram(currentBin);
-            setStatus('add', `Active row set to ${currentBin}`);
+            updateDiagram(currentRow);
+            setStatus('add', `Active row set to ${currentRow}`);
         }
 
         // Add code
         function addCode() {
-            if (!currentBin) {
+            if (!currentRow) {
                 setStatus('add', 'Pick a row first (A1..F8).');
                 return;
             }
@@ -557,9 +602,9 @@
                 return;
             }
 
-            const currentCount = state.rowToCodes[currentBin].length;
+            const currentCount = state.rowToCodes[currentRow].length;
             if (currentCount + pending.length + 1 > CAPACITY) {
-                setStatus('add', `Row ${currentBin} is at/over capacity (${CAPACITY}).`);
+                setStatus('add', `Row ${currentRow} is at/over capacity (${CAPACITY}).`);
                 return;
             }
 
@@ -595,22 +640,22 @@
 
         // Remove from current row
         function removeFromCurrent(code) {
-            if (!currentBin) return;
+            if (!currentRow) return;
 
-            const index = state.rowToCodes[currentBin].indexOf(code);
+            const index = state.rowToCodes[currentRow].indexOf(code);
             if (index > -1) {
-                state.rowToCodes[currentBin].splice(index, 1);
+                state.rowToCodes[currentRow].splice(index, 1);
                 delete state.codesToRow[code];
                 renderCurrentContents();
                 refresh();
                 saveState();
-                setStatus('add', `Removed ${code} from row ${currentBin}.`);
+                setStatus('add', `Removed ${code} from row ${currentRow}.`);
             }
         }
 
         // Commit
         function commit() {
-            if (!currentBin) {
+            if (!currentRow) {
                 setStatus('add', 'Pick a row first (A1..F8).');
                 return;
             }
@@ -620,15 +665,15 @@
                 return;
             }
 
-            const currentCount = state.rowToCodes[currentBin].length;
+            const currentCount = state.rowToCodes[currentRow].length;
             if (currentCount + pending.length > CAPACITY) {
                 setStatus('add', `Commit exceeds row capacity (${CAPACITY}). Remove some pending codes.`);
                 return;
             }
 
             for (const code of pending) {
-                state.rowToCodes[currentBin].push(code);
-                state.codesToRow[code] = currentBin;
+                state.rowToCodes[currentRow].push(code);
+                state.codesToRow[code] = currentRow;
             }
 
             pending = [];
@@ -677,13 +722,13 @@
         }
 
         // Show row contents
-        function showBin() {
+        function showRow() {
             const input = document.getElementById('inspect-input');
-            const row = normalizeBin(input.value);
+            const row = normalizeRow(input.value);
 
             const listEl = document.getElementById('show-list');
 
-            if (!validateBin(row)) {
+            if (!validateRow(row)) {
                 listEl.innerHTML = '';
                 setStatus('find', 'Invalid row. Use A1..F8.');
                 updateDiagram(null);
@@ -708,10 +753,10 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'bin_data.json';
+            a.download = 'row_data.json';
             a.click();
             URL.revokeObjectURL(url);
-            setStatus('add', 'Exported to bin_data.json.');
+            setStatus('add', 'Exported to row_data.json.');
         }
 
         function importData() {
@@ -730,20 +775,20 @@
                     // Validate and clean
                     const cleaned = { rowToCodes: {}, codesToRow: {} };
 
-                    // Initialize all bins
+                    // Initialize all rows
                     for (let letter of 'ABCDEF') {
                         for (let num = 1; num <= 8; num++) {
                             cleaned.rowToCodes[`${letter}${num}`] = [];
                         }
                     }
 
-                    // Support multiple formats: new (rowToCodes), old camelCase (binToCodes), and snake_case (bin_to_codes/row_to_codes)
-                    const rowToCodes = data.rowToCodes || data.binToCodes || data.row_to_codes || data.bin_to_codes || {};
-                    const codesToRow = data.codesToRow || data.codeToBin || data.codes_to_row || data.code_to_bin || {};
+                    // Support multiple formats: new (rowToCodes), old camelCase (rowToCodes), and snake_case (row_to_codes/row_to_codes)
+                    const rowToCodes = data.rowToCodes || data.rowToCodes || data.row_to_codes || data.row_to_codes || {};
+                    const codesToRow = data.codesToRow || data.codeToRow || data.codes_to_row || data.code_to_row || {};
 
                     // Import valid data
                     for (const [row, codes] of Object.entries(rowToCodes)) {
-                        if (!validateBin(row)) continue;
+                        if (!validateRow(row)) continue;
 
                         const validCodes = [];
                         for (const code of codes) {
@@ -771,27 +816,27 @@
         // Reset
         function resetAll() {
             if (confirm('Reset ALL data? This will delete everything and reload defaults.')) {
-                localStorage.removeItem('binLocatorData');
+                localStorage.removeItem('rowLocatorData');
                 location.reload(); // Reload page to fetch data.json again
             }
         }
 
         // UI Updates
         function refresh() {
-            const inRow = currentBin ? state.rowToCodes[currentBin].length : 0;
-            document.getElementById('in-bin-count').textContent = inRow;
+            const inRow = currentRow ? state.rowToCodes[currentRow].length : 0;
+            document.getElementById('in-row-count').textContent = inRow;
             document.getElementById('pending-count').textContent = pending.length;
-            document.getElementById('current-row-name').textContent = currentBin || '—';
+            document.getElementById('current-row-name').textContent = currentRow || '—';
         }
 
         function renderCurrentContents() {
             const listEl = document.getElementById('current-list');
-            if (!currentBin) {
+            if (!currentRow) {
                 listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">Select a row to view contents</div>';
                 return;
             }
 
-            const codes = state.rowToCodes[currentBin] || [];
+            const codes = state.rowToCodes[currentRow] || [];
 
             if (codes.length === 0) {
                 listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">No items in this row</div>';
@@ -844,7 +889,7 @@
             label.textContent = row || '—';
 
             let highlightRow = null;
-            if (row && validateBin(row)) {
+            if (row && validateRow(row)) {
                 highlightRow = parseInt(row[1]);
             }
 
@@ -860,7 +905,7 @@
 
         // Persistence
         function saveState() {
-            localStorage.setItem('binLocatorData', JSON.stringify(state));
+            localStorage.setItem('rowLocatorData', JSON.stringify(state));
         }
 
         // Keyboard shortcuts
@@ -875,7 +920,7 @@
                     if (document.activeElement === document.getElementById('lookup-input')) {
                         searchCode();
                     } else if (document.activeElement === document.getElementById('inspect-input')) {
-                        showBin();
+                        showRow();
                     }
                 }
             }
