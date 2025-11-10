@@ -312,7 +312,7 @@
                 <label>Manual:</label>
                 <input type="text" id="manual-bin" placeholder="e.g., A1" maxlength="2">
 
-                <button onclick="setRow()">Set Row</button>
+                <button onclick="setBin()">Set Row</button>
             </div>
 
             <div class="separator"></div>
@@ -371,7 +371,7 @@
                     <div class="form-row">
                         <label>Quick inspect row:</label>
                         <input type="text" id="inspect-input" placeholder="e.g., A1" maxlength="2">
-                        <button onclick="showRow()">Show</button>
+                        <button onclick="showBin()">Show</button>
                     </div>
 
                     <div class="show-list" id="show-list"></div>
@@ -401,7 +401,7 @@
             rowToCodes: {},
             codesToRow: {}
         };
-        let currentRow = '';
+        let currentBin = '';
         let pending = [];
         let selectedPending = new Set();
 
@@ -448,7 +448,7 @@
                         // Support multiple formats: new (rowToCodes), old camelCase (binToCodes), and snake_case
                         state = {
                             rowToCodes: defaultData.rowToCodes || defaultData.binToCodes || defaultData.row_to_codes || defaultData.bin_to_codes || {},
-                            codesToRow: defaultData.codesToRow || defaultData.codeToRow || defaultData.codes_to_row || defaultData.code_to_bin || {}
+                            codesToRow: defaultData.codesToRow || defaultData.codeToBin || defaultData.codes_to_row || defaultData.code_to_bin || {}
                         };
 
                         // Ensure all rows exist
@@ -494,7 +494,7 @@
         }
 
         // Validation
-        function validateRow(row) {
+        function validateBin(row) {
             return BIN_PATTERN.test(row.trim().toUpperCase());
         }
 
@@ -502,7 +502,7 @@
             return CODE_PATTERN.test(code.trim().toUpperCase());
         }
 
-        function normalizeRow(row) {
+        function normalizeBin(row) {
             return row.trim().toUpperCase();
         }
 
@@ -511,7 +511,7 @@
         }
 
         // Row selection
-        function setRow() {
+        function setBin() {
             const manual = document.getElementById('manual-bin').value;
             const letter = document.getElementById('letter-select').value;
             const number = document.getElementById('number-select').value;
@@ -523,23 +523,23 @@
                 row = letter + number;
             }
 
-            row = normalizeRow(row);
+            row = normalizeBin(row);
 
-            if (!validateRow(row)) {
+            if (!validateBin(row)) {
                 setStatus('add', 'Invalid row. Use A-F + 1-8, e.g., D4.');
                 return;
             }
 
-            currentRow = row;
+            currentBin = row;
             refresh();
             renderCurrentContents();
-            updateDiagram(currentRow);
-            setStatus('add', `Active row set to ${currentRow}`);
+            updateDiagram(currentBin);
+            setStatus('add', `Active row set to ${currentBin}`);
         }
 
         // Add code
         function addCode() {
-            if (!currentRow) {
+            if (!currentBin) {
                 setStatus('add', 'Pick a row first (A1..F8).');
                 return;
             }
@@ -557,9 +557,9 @@
                 return;
             }
 
-            const currentCount = state.rowToCodes[currentRow].length;
+            const currentCount = state.rowToCodes[currentBin].length;
             if (currentCount + pending.length + 1 > CAPACITY) {
-                setStatus('add', `Row ${currentRow} is at/over capacity (${CAPACITY}).`);
+                setStatus('add', `Row ${currentBin} is at/over capacity (${CAPACITY}).`);
                 return;
             }
 
@@ -595,22 +595,22 @@
 
         // Remove from current row
         function removeFromCurrent(code) {
-            if (!currentRow) return;
+            if (!currentBin) return;
 
-            const index = state.rowToCodes[currentRow].indexOf(code);
+            const index = state.rowToCodes[currentBin].indexOf(code);
             if (index > -1) {
-                state.rowToCodes[currentRow].splice(index, 1);
+                state.rowToCodes[currentBin].splice(index, 1);
                 delete state.codesToRow[code];
                 renderCurrentContents();
                 refresh();
                 saveState();
-                setStatus('add', `Removed ${code} from row ${currentRow}.`);
+                setStatus('add', `Removed ${code} from row ${currentBin}.`);
             }
         }
 
         // Commit
         function commit() {
-            if (!currentRow) {
+            if (!currentBin) {
                 setStatus('add', 'Pick a row first (A1..F8).');
                 return;
             }
@@ -620,15 +620,15 @@
                 return;
             }
 
-            const currentCount = state.rowToCodes[currentRow].length;
+            const currentCount = state.rowToCodes[currentBin].length;
             if (currentCount + pending.length > CAPACITY) {
                 setStatus('add', `Commit exceeds row capacity (${CAPACITY}). Remove some pending codes.`);
                 return;
             }
 
             for (const code of pending) {
-                state.rowToCodes[currentRow].push(code);
-                state.codesToRow[code] = currentRow;
+                state.rowToCodes[currentBin].push(code);
+                state.codesToRow[code] = currentBin;
             }
 
             pending = [];
@@ -677,13 +677,13 @@
         }
 
         // Show row contents
-        function showRow() {
+        function showBin() {
             const input = document.getElementById('inspect-input');
-            const row = normalizeRow(input.value);
+            const row = normalizeBin(input.value);
 
             const listEl = document.getElementById('show-list');
 
-            if (!validateRow(row)) {
+            if (!validateBin(row)) {
                 listEl.innerHTML = '';
                 setStatus('find', 'Invalid row. Use A1..F8.');
                 updateDiagram(null);
@@ -739,11 +739,11 @@
 
                     // Support multiple formats: new (rowToCodes), old camelCase (binToCodes), and snake_case (bin_to_codes/row_to_codes)
                     const rowToCodes = data.rowToCodes || data.binToCodes || data.row_to_codes || data.bin_to_codes || {};
-                    const codesToRow = data.codesToRow || data.codeToRow || data.codes_to_row || data.code_to_bin || {};
+                    const codesToRow = data.codesToRow || data.codeToBin || data.codes_to_row || data.code_to_bin || {};
 
                     // Import valid data
                     for (const [row, codes] of Object.entries(rowToCodes)) {
-                        if (!validateRow(row)) continue;
+                        if (!validateBin(row)) continue;
 
                         const validCodes = [];
                         for (const code of codes) {
@@ -778,20 +778,20 @@
 
         // UI Updates
         function refresh() {
-            const inRow = currentRow ? state.rowToCodes[currentRow].length : 0;
+            const inRow = currentBin ? state.rowToCodes[currentBin].length : 0;
             document.getElementById('in-bin-count').textContent = inRow;
             document.getElementById('pending-count').textContent = pending.length;
-            document.getElementById('current-row-name').textContent = currentRow || '—';
+            document.getElementById('current-row-name').textContent = currentBin || '—';
         }
 
         function renderCurrentContents() {
             const listEl = document.getElementById('current-list');
-            if (!currentRow) {
+            if (!currentBin) {
                 listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">Select a row to view contents</div>';
                 return;
             }
 
-            const codes = state.rowToCodes[currentRow] || [];
+            const codes = state.rowToCodes[currentBin] || [];
 
             if (codes.length === 0) {
                 listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">No items in this row</div>';
@@ -844,7 +844,7 @@
             label.textContent = row || '—';
 
             let highlightRow = null;
-            if (row && validateRow(row)) {
+            if (row && validateBin(row)) {
                 highlightRow = parseInt(row[1]);
             }
 
@@ -875,7 +875,7 @@
                     if (document.activeElement === document.getElementById('lookup-input')) {
                         searchCode();
                     } else if (document.activeElement === document.getElementById('inspect-input')) {
-                        showRow();
+                        showBin();
                     }
                 }
             }
