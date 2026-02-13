@@ -395,7 +395,7 @@
                 </div>
             </div>
 
-            <div class="status-bar" id="find-status">Ready</div>
+            <div class="status-bar" id="find-status"></div>
         </div>
 
         <!-- Modify Rows Tab -->
@@ -435,6 +435,10 @@
                     <button onclick="setRow()">Set Row</button>
                 </div>
 
+                <div id="initial-import-section" class="form-row centered" style="margin-top: 10px;">
+                    <button class="secondary" onclick="importData()">Import JSON</button>
+                </div>
+
                 <!-- Current Row Contents (shown when row is set) -->
                 <div id="row-content-section" style="display: none;">
                     <div class="separator"></div>
@@ -470,12 +474,11 @@
                     <div class="form-row centered" style="margin-top: 20px;">
                         <button onclick="commit()">Commit (End)</button>
                         <button class="secondary" onclick="exportData()">Export JSON</button>
-                        <button class="secondary" onclick="importData()">Import JSON</button>
                         <button class="danger" onclick="cancelChanges()">Cancel</button>
                     </div>
                 </div>
 
-                <div class="status-bar" id="add-status">Ready</div>
+                <div class="status-bar" id="add-status"></div>
             </div>
         </div>
     </div>
@@ -605,11 +608,18 @@
         }
 
         function toggleCurrentExpand() {
-        const el = document.getElementById('current-list');
-        el.classList.toggle('expanded');
-        // update button label
-        const btn = document.querySelector('.expand-btn');
-        if (btn) btn.textContent = el.classList.contains('expanded') ? 'Collapse' : 'Expand';
+            const el = document.getElementById('current-list');
+            const btn = document.querySelector('.expand-btn');
+            
+            if (el.classList.contains('expanded')) {
+                el.classList.remove('expanded');
+                el.style.maxHeight = '150px';
+                if (btn) btn.textContent = 'Expand';
+            } else {
+                el.classList.add('expanded');
+                el.style.maxHeight = '70vh';
+                if (btn) btn.textContent = 'Collapse';
+            }
         }
 
 
@@ -634,6 +644,7 @@
             }
 
             currentRow = row;
+            document.getElementById('initial-import-section').style.display = 'none';
             document.getElementById('row-content-section').style.display = 'block';
             refresh();
             renderCurrentContents();
