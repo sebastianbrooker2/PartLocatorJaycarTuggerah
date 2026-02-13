@@ -68,12 +68,42 @@
             display: block;
         }
 
+        .modify-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .modify-container .info-row {
+            font-size: 16px;
+        }
+
         .form-row {
             display: flex;
             gap: 10px;
             align-items: center;
             margin-bottom: 15px;
             flex-wrap: wrap;
+        }
+
+        .form-row.centered {
+            justify-content: center;
+        }
+
+        .form-row.large label {
+            font-size: 16px;
+            min-width: 120px;
+        }
+
+        .form-row.large input,
+        .form-row.large select {
+            font-size: 16px;
+            padding: 10px 14px;
+            min-width: 100px;
+        }
+
+        .form-row.large button {
+            font-size: 16px;
+            padding: 10px 20px;
         }
 
         label {
@@ -135,7 +165,7 @@
             flex-wrap: wrap;
         }
 
-        .pending-list, .show-list {
+        .pending-list {
             border: 1px solid #ddd;
             border-radius: 4px;
             min-height: 150px;
@@ -170,14 +200,55 @@
         .expand-btn:hover { background:#6c7a7a; }
 
 
-        .pending-item, .show-item {
-            padding: 8px;
+        .pending-item {
+            padding: 8px 12px;
             margin-bottom: 5px;
             background: white;
             border: 1px solid #ddd;
             border-radius: 3px;
-            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             transition: background 0.2s;
+        }
+
+        .pending-item.addition {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .pending-item.removal {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+
+        .pending-item-code {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .pending-item.addition .pending-item-code {
+            color: #155724;
+        }
+
+        .pending-item.removal .pending-item-code {
+            color: #721c24;
+            text-decoration: line-through;
+        }
+
+        .undo-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .undo-btn:hover {
+            background: #5a6268;
         }
 
 
@@ -212,14 +283,6 @@
             background: #c0392b;
         }
 
-        .pending-item:hover, .show-item:hover {
-            background: #e3f2fd;
-        }
-
-        .pending-item.selected {
-            background: #2196f3;
-            color: white;
-        }
 
         .status-bar {
             background: #ecf0f1;
@@ -231,7 +294,6 @@
         }
 
         .diagram-container {
-            margin-top: 20px;
             padding: 20px;
             background: #f8f9fa;
             border-radius: 8px;
@@ -287,6 +349,13 @@
             gap: 30px;
         }
 
+        .find-search-section {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 30px;
+        }
+
         @media (max-width: 768px) {
             .find-layout {
                 grid-template-columns: 1fr;
@@ -304,113 +373,19 @@
         <h1>🌪️ Row Locator</h1>
 
         <div class="tabs">
-            <button class="tab active" onclick="switchTab('add')">Modify Rows</button>
-            <button class="tab" onclick="switchTab('find')">Find Location</button>
-        </div>
-
-        <!-- Modify Rows Tab -->
-        <div id="add-tab" class="tab-content active">
-            <div class="form-row">
-                <label>Turbine Letter:</label>
-                <select id="letter-select">
-                    <option value="">-</option>
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="C">C</option>
-                    <option value="D">D</option>
-                    <option value="E">E</option>
-                    <option value="F">F</option>
-                </select>
-
-                <label>Row:</label>
-                <select id="number-select">
-                    <option value="">-</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                </select>
-
-                <label>Manual:</label>
-                <input type="text" id="manual-row" placeholder="e.g., A1" maxlength="2">
-
-                <button onclick="setRow()">Set Row</button>
-            </div>
-
-            <div class="separator"></div>
-
-            <div class="info-row">
-                <span><strong>Current row contents:</strong> <span id="current-row-name">—</span></span>
-                <span>Row Capacity: <strong>24</strong></span>
-                <span>In Row: <strong id="in-row-count">0</strong></span>
-                <button class="expand-btn" onclick="toggleCurrentExpand()">Expand</button>
-            </div>
-
-            <div class="pending-list resizable-panel" id="current-list" style="min-height: 100px; max-height: 150px;"></div>
-
-
-            <div class="info-row">
-                <span><strong>Current row contents:</strong> <span id="current-row-name">—</span></span>
-                <span>Row Capacity: <strong>24</strong></span>
-                <span>In Row: <strong id="in-row-count">0</strong></span>
-            </div>
-
-            <div class="pending-list" id="current-list" style="min-height: 100px; max-height: 150px;"></div>
-
-            <div class="separator"></div>
-
-            <div class="info-row">
-                <span><strong>Pending codes to add:</strong> <span id="pending-count">0</span></span>
-            </div>
-
-            <div class="pending-list" id="pending-list"></div>
-
-            <div class="form-row">
-                <label>Add code:</label>
-                <input type="text" id="code-input" placeholder="e.g., SM2002" maxlength="6">
-                <button onclick="addCode()">Add</button>
-                <button class="secondary" onclick="removeSelected()">Remove Selected</button>
-            </div>
-
-            <div class="form-row">
-                <button onclick="commit()">Commit (End)</button>
-                <button class="secondary" onclick="clearPending()">Clear Pending</button>
-                <button class="secondary" onclick="exportData()">Export JSON</button>
-                <button class="secondary" onclick="importData()">Import JSON</button>
-                <button class="danger" onclick="resetAll()">Reset All</button>
-            </div>
-
-            <div class="status-bar" id="add-status">Ready</div>
+            <button class="tab active" onclick="switchTab('find')">Find Location</button>
+            <button class="tab" onclick="switchTab('add')">Modify Rows</button>
         </div>
 
         <!-- Find Location Tab -->
-        <div id="find-tab" class="tab-content">
+        <div id="find-tab" class="tab-content active">
             <div class="find-layout">
-                <div>
-                    <div class="form-row">
+                <div class="find-search-section">
+                    <div class="form-row large centered">
                         <label>Enter item code:</label>
                         <input type="text" id="lookup-input" placeholder="e.g., SM2002" maxlength="6">
                         <button onclick="searchCode()">Search</button>
                     </div>
-
-                    <div class="form-row">
-                        <label>Result:</label>
-                        <strong id="search-result">—</strong>
-                    </div>
-
-                    <div class="separator"></div>
-
-                    <div class="form-row">
-                        <label>Quick inspect row:</label>
-                        <input type="text" id="inspect-input" placeholder="e.g., A1" maxlength="2">
-                        <button onclick="showRow()">Show</button>
-                    </div>
-
-                    <div class="show-list" id="show-list"></div>
                 </div>
 
                 <div class="diagram-container">
@@ -421,6 +396,87 @@
             </div>
 
             <div class="status-bar" id="find-status">Ready</div>
+        </div>
+
+        <!-- Modify Rows Tab -->
+        <div id="add-tab" class="tab-content">
+            <div class="modify-container">
+                <!-- Row Selection - Compact Layout -->
+                <div class="form-row centered">
+                    <label>Turbine Letter:</label>
+                    <select id="letter-select">
+                        <option value="">-</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                        <option value="E">E</option>
+                        <option value="F">F</option>
+                    </select>
+
+                    <label>Row:</label>
+                    <select id="number-select">
+                        <option value="">-</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                    </select>
+
+                    <label>Manual:</label>
+                    <input type="text" id="manual-row" placeholder="e.g., A1" maxlength="2">
+                </div>
+
+                <div class="form-row centered" style="margin-top: 10px;">
+                    <button onclick="setRow()">Set Row</button>
+                </div>
+
+                <!-- Current Row Contents (shown when row is set) -->
+                <div id="row-content-section" style="display: none;">
+                    <div class="separator"></div>
+
+                    <div class="info-row" style="justify-content: center;">
+                        <span><strong>Current row contents:</strong> <span id="current-row-name">—</span></span>
+                        <span>Row Capacity: <strong>24</strong></span>
+                        <span>In Row: <strong id="in-row-count">0</strong></span>
+                        <button class="expand-btn" onclick="toggleCurrentExpand()">Expand</button>
+                    </div>
+
+                    <div class="pending-list resizable-panel" id="current-list" style="min-height: 100px; max-height: 150px;"></div>
+
+                    <!-- Add Code Section (directly under current contents) -->
+                    <div class="form-row centered" style="margin-top: 15px;">
+                        <label>Add code:</label>
+                        <input type="text" id="code-input" placeholder="e.g., SM2002" maxlength="6">
+                        <button onclick="addCode()">Add</button>
+                    </div>
+                </div>
+
+                <!-- Pending Changes Section (hidden until changes exist) -->
+                <div id="pending-changes-section" style="display: none;">
+                    <div class="separator"></div>
+
+                    <div class="info-row" style="justify-content: center;">
+                        <span><strong>Pending changes:</strong> <span id="pending-count">0</span></span>
+                    </div>
+
+                    <div class="pending-list" id="pending-list"></div>
+
+                    <!-- Bottom Buttons -->
+                    <div class="form-row centered" style="margin-top: 20px;">
+                        <button onclick="commit()">Commit (End)</button>
+                        <button class="secondary" onclick="exportData()">Export JSON</button>
+                        <button class="secondary" onclick="importData()">Import JSON</button>
+                        <button class="danger" onclick="cancelChanges()">Cancel</button>
+                    </div>
+                </div>
+
+                <div class="status-bar" id="add-status">Ready</div>
+            </div>
         </div>
     </div>
 
@@ -438,8 +494,10 @@
             codesToRow: {}
         };
         let currentRow = '';
-        let pending = [];
-        let selectedPending = new Set();
+        let pendingChanges = {
+            additions: [],
+            removals: []
+        };
 
         // Initialize
         async function init() {
@@ -520,12 +578,12 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
 
-            if (tab === 'add') {
+            if (tab === 'find') {
                 document.querySelector('.tabs .tab:first-child').classList.add('active');
-                document.getElementById('add-tab').classList.add('active');
+                document.getElementById('find-tab').classList.add('active');
             } else {
                 document.querySelector('.tabs .tab:last-child').classList.add('active');
-                document.getElementById('find-tab').classList.add('active');
+                document.getElementById('add-tab').classList.add('active');
             }
         }
 
@@ -576,6 +634,7 @@
             }
 
             currentRow = row;
+            document.getElementById('row-content-section').style.display = 'block';
             refresh();
             renderCurrentContents();
             updateDiagram(currentRow);
@@ -603,54 +662,37 @@
             }
 
             const currentCount = state.rowToCodes[currentRow].length;
-            if (currentCount + pending.length + 1 > CAPACITY) {
+            const netAdditions = pendingChanges.additions.length - pendingChanges.removals.length;
+            if (currentCount + netAdditions + 1 > CAPACITY) {
                 setStatus('add', `Row ${currentRow} is at/over capacity (${CAPACITY}).`);
                 return;
             }
 
-            if (pending.includes(code)) {
-                setStatus('add', 'That code is already pending.');
+            if (pendingChanges.additions.includes(code)) {
+                setStatus('add', 'That code is already pending addition.');
                 return;
             }
 
-            pending.push(code);
+            pendingChanges.additions.push(code);
             input.value = '';
             renderPending();
             refresh();
-            setStatus('add', `Added ${code} to pending.`);
+            setStatus('add', `Added ${code} to pending changes.`);
         }
 
-        // Remove selected pending
-        function removeSelected() {
-            pending = pending.filter(code => !selectedPending.has(code));
-            selectedPending.clear();
-            renderPending();
-            refresh();
-            setStatus('add', 'Removed selected pending.');
-        }
-
-        // Clear pending
-        function clearPending() {
-            pending = [];
-            selectedPending.clear();
-            renderPending();
-            refresh();
-            setStatus('add', 'Cleared pending list.');
-        }
-
-        // Remove from current row
+        // Remove from current row (add to pending removals)
         function removeFromCurrent(code) {
             if (!currentRow) return;
 
-            const index = state.rowToCodes[currentRow].indexOf(code);
-            if (index > -1) {
-                state.rowToCodes[currentRow].splice(index, 1);
-                delete state.codesToRow[code];
-                renderCurrentContents();
-                refresh();
-                saveState();
-                setStatus('add', `Removed ${code} from row ${currentRow}.`);
+            if (pendingChanges.removals.includes(code)) {
+                setStatus('add', `${code} is already pending removal.`);
+                return;
             }
+
+            pendingChanges.removals.push(code);
+            renderPending();
+            refresh();
+            setStatus('add', `Added ${code} to pending removals.`);
         }
 
         // Commit
@@ -660,29 +702,40 @@
                 return;
             }
 
-            if (pending.length === 0) {
+            if (pendingChanges.additions.length === 0 && pendingChanges.removals.length === 0) {
                 setStatus('add', 'Nothing to commit.');
                 return;
             }
 
             const currentCount = state.rowToCodes[currentRow].length;
-            if (currentCount + pending.length > CAPACITY) {
-                setStatus('add', `Commit exceeds row capacity (${CAPACITY}). Remove some pending codes.`);
+            const netAdditions = pendingChanges.additions.length - pendingChanges.removals.length;
+            if (currentCount + netAdditions > CAPACITY) {
+                setStatus('add', `Commit exceeds row capacity (${CAPACITY}). Adjust pending changes.`);
                 return;
             }
 
-            for (const code of pending) {
+            // Apply removals first
+            for (const code of pendingChanges.removals) {
+                const index = state.rowToCodes[currentRow].indexOf(code);
+                if (index > -1) {
+                    state.rowToCodes[currentRow].splice(index, 1);
+                    delete state.codesToRow[code];
+                }
+            }
+
+            // Then apply additions
+            for (const code of pendingChanges.additions) {
                 state.rowToCodes[currentRow].push(code);
                 state.codesToRow[code] = currentRow;
             }
 
-            pending = [];
-            selectedPending.clear();
+            pendingChanges.additions = [];
+            pendingChanges.removals = [];
             renderPending();
             renderCurrentContents();
             refresh();
             saveState();
-            setStatus('add', 'Saved.');
+            setStatus('add', 'Changes committed and saved.');
         }
 
         // Search code
@@ -690,18 +743,14 @@
             const input = document.getElementById('lookup-input');
             const code = normalizeCode(input.value);
 
-            const resultEl = document.getElementById('search-result');
-
             if (!code) {
-                resultEl.textContent = '—';
-                resultEl.classList.remove('not-found');
+                updateDiagram(null);
+                setStatus('find', 'Enter a code to search.');
                 return;
             }
 
             if (!validateCode(code)) {
-                resultEl.textContent = '—';
-                resultEl.classList.remove('not-found');
-                setStatus('find', 'Invalid code. Expect LLDDDD.');
+                setStatus('find', 'Invalid code. Expect LLDDDD (e.g., SM2002).');
                 updateDiagram(null);
                 return;
             }
@@ -709,41 +758,14 @@
             const row = state.codesToRow[code];
 
             if (row) {
-                resultEl.textContent = row;
-                resultEl.classList.remove('not-found');
                 updateDiagram(row);
+                setStatus('find', `Found: ${code} is in ${row}`);
             } else {
-                resultEl.textContent = '❌';
-                resultEl.classList.add('not-found');
                 updateDiagram(null);
+                setStatus('find', `Not found: ${code} is not in any row.`);
             }
 
             setStatus('find', 'Done.');
-        }
-
-        // Show row contents
-        function showRow() {
-            const input = document.getElementById('inspect-input');
-            const row = normalizeRow(input.value);
-
-            const listEl = document.getElementById('show-list');
-
-            if (!validateRow(row)) {
-                listEl.innerHTML = '';
-                setStatus('find', 'Invalid row. Use A1..F8.');
-                updateDiagram(null);
-                return;
-            }
-
-            const codes = state.rowToCodes[row] || [];
-            const sorted = [...codes].sort();
-
-            listEl.innerHTML = sorted.map(code =>
-                `<div class="show-item">${code}</div>`
-            ).join('');
-
-            setStatus('find', `Listed ${sorted.length} codes in ${row}.`);
-            updateDiagram(row);
         }
 
         // Export/Import
@@ -814,10 +836,17 @@
         }
 
         // Reset
-        function resetAll() {
-            if (confirm('Reset ALL data? This will delete everything and reload defaults.')) {
-                localStorage.removeItem('rowLocatorData');
-                location.reload(); // Reload page to fetch data.json again
+        function cancelChanges() {
+            if (pendingChanges.additions.length > 0 || pendingChanges.removals.length > 0) {
+                if (confirm('Cancel all pending changes?')) {
+                    pendingChanges.additions = [];
+                    pendingChanges.removals = [];
+                    renderPending();
+                    refresh();
+                    setStatus('add', 'Cancelled all pending changes.');
+                }
+            } else {
+                setStatus('add', 'No pending changes to cancel.');
             }
         }
 
@@ -825,7 +854,8 @@
         function refresh() {
             const inRow = currentRow ? state.rowToCodes[currentRow].length : 0;
             document.getElementById('in-row-count').textContent = inRow;
-            document.getElementById('pending-count').textContent = pending.length;
+            const totalPending = pendingChanges.additions.length + pendingChanges.removals.length;
+            document.getElementById('pending-count').textContent = totalPending;
             document.getElementById('current-row-name').textContent = currentRow || '—';
         }
 
@@ -853,19 +883,54 @@
 
         function renderPending() {
             const listEl = document.getElementById('pending-list');
-            listEl.innerHTML = pending.map(code => {
-                const selected = selectedPending.has(code) ? ' selected' : '';
-                return `<div class="pending-item${selected}" onclick="togglePending('${code}')">${code}</div>`;
-            }).join('');
+            let html = '';
+
+            // Render additions (green)
+            pendingChanges.additions.forEach(code => {
+                html += `<div class="pending-item addition">
+                    <span class="pending-item-code">+ ${code}</span>
+                    <button class="undo-btn" onclick="undoAddition('${code}')">Undo</button>
+                </div>`;
+            });
+
+            // Render removals (red)
+            pendingChanges.removals.forEach(code => {
+                html += `<div class="pending-item removal">
+                    <span class="pending-item-code">- ${code}</span>
+                    <button class="undo-btn" onclick="undoRemoval('${code}')">Undo</button>
+                </div>`;
+            });
+
+            listEl.innerHTML = html || '<div style="padding: 20px; text-align: center; color: #7f8c8d;">No pending changes</div>';
+            
+            // Show/hide pending changes section
+            updatePendingVisibility();
         }
 
-        function togglePending(code) {
-            if (selectedPending.has(code)) {
-                selectedPending.delete(code);
-            } else {
-                selectedPending.add(code);
+        function updatePendingVisibility() {
+            const section = document.getElementById('pending-changes-section');
+            const hasPending = pendingChanges.additions.length > 0 || pendingChanges.removals.length > 0;
+            section.style.display = hasPending ? 'block' : 'none';
+        }
+
+        function undoAddition(code) {
+            const index = pendingChanges.additions.indexOf(code);
+            if (index > -1) {
+                pendingChanges.additions.splice(index, 1);
+                renderPending();
+                refresh();
+                setStatus('add', `Undid addition of ${code}.`);
             }
-            renderPending();
+        }
+
+        function undoRemoval(code) {
+            const index = pendingChanges.removals.indexOf(code);
+            if (index > -1) {
+                pendingChanges.removals.splice(index, 1);
+                renderPending();
+                refresh();
+                setStatus('add', `Undid removal of ${code}.`);
+            }
         }
 
         function setStatus(tab, message) {
@@ -919,8 +984,6 @@
                 } else if (activeTab.id === 'find-tab') {
                     if (document.activeElement === document.getElementById('lookup-input')) {
                         searchCode();
-                    } else if (document.activeElement === document.getElementById('inspect-input')) {
-                        showRow();
                     }
                 }
             }
