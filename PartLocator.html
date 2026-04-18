@@ -398,7 +398,7 @@
                     <!-- Jaycar link (shows after search) -->
                     <div id="jaycar-link-section" style="display: none; margin-top: 10px; text-align: center;">
                         <a id="jaycar-link" href="#" target="_blank" style="text-decoration: none;">
-                            <button class="secondary">Search on Jaycar Website</button>
+                            <button class="secondary" id="jaycar-button">Search on Jaycar Website</button>
                         </a>
                     </div>
                 </div>
@@ -897,6 +897,7 @@
 
             // Set Jaycar link for this code
             document.getElementById('jaycar-link').href = `https://www.jaycar.com.au/search?q=${code}`;
+            document.getElementById('jaycar-button').textContent = `Search "${code}" on Jaycar Website`;
             document.getElementById('jaycar-link-section').style.display = 'block';
 
             if (row) {
