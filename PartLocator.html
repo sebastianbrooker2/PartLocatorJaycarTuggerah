@@ -222,6 +222,11 @@
             border-color: #dc3545;
         }
 
+        .pending-item.move {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+
         .pending-item-code {
             flex: 1;
             font-weight: 500;
@@ -234,6 +239,10 @@
         .pending-item.removal .pending-item-code {
             color: #721c24;
             text-decoration: line-through;
+        }
+
+        .pending-item.move .pending-item-code {
+            color: #856404;
         }
 
         .undo-btn {
@@ -395,6 +404,60 @@
                 </div>
             </div>
 
+            <!-- Move/Remove Section (shows after finding a part) -->
+            <div id="find-move-section" style="display: none; margin-top: 20px;">
+                <div class="separator"></div>
+                
+                <div class="info-row" style="justify-content: center;">
+                    <span><strong>Move or remove:</strong> <span id="current-code">—</span></span>
+                </div>
+
+                <div class="form-row centered" style="margin-top: 15px;">
+                    <label>Move to Turbine:</label>
+                    <select id="find-turbine-select">
+                        <option value="">-</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                        <option value="E">E</option>
+                        <option value="F">F</option>
+                    </select>
+
+                    <label>Row:</label>
+                    <select id="find-row-select">
+                        <option value="">-</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                    </select>
+
+                    <button onclick="movePartPending()">Move</button>
+                    <button class="danger" onclick="removePartPending()">Remove from System</button>
+                </div>
+            </div>
+
+            <!-- Find Tab Pending Changes -->
+            <div id="find-pending-section" style="display: none;">
+                <div class="separator"></div>
+
+                <div class="info-row" style="justify-content: center;">
+                    <span><strong>Pending changes:</strong> <span id="find-pending-count">0</span></span>
+                </div>
+
+                <div class="pending-list" id="find-pending-list"></div>
+
+                <div class="form-row centered" style="margin-top: 20px;">
+                    <button onclick="commitFindChanges()">Commit Changes</button>
+                    <button class="danger" onclick="cancelFindChanges()">Cancel</button>
+                </div>
+            </div>
+
             <div class="status-bar" id="find-status">Ready</div>
         </div>
 
@@ -500,6 +563,13 @@
         let pendingChanges = {
             additions: [],
             removals: []
+        };
+        
+        // Find tab state
+        let currentSearchedCode = '';
+        let findPendingChanges = {
+            moves: [],      // {code, fromRow, toRow}
+            removals: []    // {code, fromRow}
         };
 
         // Initialize
@@ -756,6 +826,7 @@
 
             if (!code) {
                 updateDiagram(null);
+                document.getElementById('find-move-section').style.display = 'none';
                 setStatus('find', 'Enter a code to search.');
                 return;
             }
@@ -763,20 +834,216 @@
             if (!validateCode(code)) {
                 setStatus('find', 'Invalid code. Expect LLDDDD (e.g., SM2002).');
                 updateDiagram(null);
+                document.getElementById('find-move-section').style.display = 'none';
                 return;
             }
 
             const row = state.codesToRow[code];
 
             if (row) {
+                currentSearchedCode = code;
                 updateDiagram(row);
+                document.getElementById('current-code').textContent = code;
+                document.getElementById('find-move-section').style.display = 'block';
                 setStatus('find', `Found: ${code} is in ${row}`);
             } else {
                 updateDiagram(null);
+                document.getElementById('find-move-section').style.display = 'none';
                 setStatus('find', `Not found: ${code} is not in any row.`);
             }
+        }
 
-            setStatus('find', 'Done.');
+        // Find tab - Move part
+        function movePartPending() {
+            if (!currentSearchedCode) {
+                setStatus('find', 'No part selected.');
+                return;
+            }
+
+            const turbine = document.getElementById('find-turbine-select').value;
+            const row = document.getElementById('find-row-select').value;
+
+            if (!turbine || !row) {
+                setStatus('find', 'Select both turbine and row.');
+                return;
+            }
+
+            const toRow = turbine + row;
+            const fromRow = state.codesToRow[currentSearchedCode];
+
+            if (!validateRow(toRow)) {
+                setStatus('find', 'Invalid row selected.');
+                return;
+            }
+
+            if (fromRow === toRow) {
+                setStatus('find', 'Part is already in that location.');
+                return;
+            }
+
+            // Check if already pending
+            const existingMove = findPendingChanges.moves.find(m => m.code === currentSearchedCode);
+            if (existingMove) {
+                setStatus('find', 'This part already has a pending move.');
+                return;
+            }
+
+            const existingRemoval = findPendingChanges.removals.find(r => r.code === currentSearchedCode);
+            if (existingRemoval) {
+                setStatus('find', 'This part already has a pending removal.');
+                return;
+            }
+
+            findPendingChanges.moves.push({
+                code: currentSearchedCode,
+                fromRow: fromRow,
+                toRow: toRow
+            });
+
+            // Clear dropdowns
+            document.getElementById('find-turbine-select').value = '';
+            document.getElementById('find-row-select').value = '';
+
+            renderFindPending();
+            setStatus('find', `Pending: Move ${currentSearchedCode} from ${fromRow} to ${toRow}`);
+        }
+
+        // Find tab - Remove part
+        function removePartPending() {
+            if (!currentSearchedCode) {
+                setStatus('find', 'No part selected.');
+                return;
+            }
+
+            const fromRow = state.codesToRow[currentSearchedCode];
+
+            // Check if already pending
+            const existingRemoval = findPendingChanges.removals.find(r => r.code === currentSearchedCode);
+            if (existingRemoval) {
+                setStatus('find', 'This part already has a pending removal.');
+                return;
+            }
+
+            const existingMove = findPendingChanges.moves.find(m => m.code === currentSearchedCode);
+            if (existingMove) {
+                setStatus('find', 'This part already has a pending move.');
+                return;
+            }
+
+            findPendingChanges.removals.push({
+                code: currentSearchedCode,
+                fromRow: fromRow
+            });
+
+            renderFindPending();
+            setStatus('find', `Pending: Remove ${currentSearchedCode} from ${fromRow}`);
+        }
+
+        // Find tab - Render pending changes
+        function renderFindPending() {
+            const listEl = document.getElementById('find-pending-list');
+            let html = '';
+
+            // Render moves (blue/yellow)
+            findPendingChanges.moves.forEach(change => {
+                html += `<div class="pending-item move">
+                    <span class="pending-item-code">↔ ${change.code}: ${change.fromRow} → ${change.toRow}</span>
+                    <button class="undo-btn" onclick="undoFindMove('${change.code}')">Undo</button>
+                </div>`;
+            });
+
+            // Render removals (red)
+            findPendingChanges.removals.forEach(change => {
+                html += `<div class="pending-item removal">
+                    <span class="pending-item-code">- ${change.code} from ${change.fromRow}</span>
+                    <button class="undo-btn" onclick="undoFindRemoval('${change.code}')">Undo</button>
+                </div>`;
+            });
+
+            listEl.innerHTML = html || '<div style="padding: 20px; text-align: center; color: #7f8c8d;">No pending changes</div>';
+            
+            updateFindPendingVisibility();
+            updateFindPendingCount();
+        }
+
+        function undoFindMove(code) {
+            const index = findPendingChanges.moves.findIndex(m => m.code === code);
+            if (index > -1) {
+                findPendingChanges.moves.splice(index, 1);
+                renderFindPending();
+                setStatus('find', `Undid move of ${code}.`);
+            }
+        }
+
+        function undoFindRemoval(code) {
+            const index = findPendingChanges.removals.findIndex(r => r.code === code);
+            if (index > -1) {
+                findPendingChanges.removals.splice(index, 1);
+                renderFindPending();
+                setStatus('find', `Undid removal of ${code}.`);
+            }
+        }
+
+        function updateFindPendingVisibility() {
+            const section = document.getElementById('find-pending-section');
+            const hasPending = findPendingChanges.moves.length > 0 || findPendingChanges.removals.length > 0;
+            section.style.display = hasPending ? 'block' : 'none';
+        }
+
+        function updateFindPendingCount() {
+            const total = findPendingChanges.moves.length + findPendingChanges.removals.length;
+            document.getElementById('find-pending-count').textContent = total;
+        }
+
+        // Find tab - Commit changes
+        function commitFindChanges() {
+            if (findPendingChanges.moves.length === 0 && findPendingChanges.removals.length === 0) {
+                setStatus('find', 'Nothing to commit.');
+                return;
+            }
+
+            // Apply removals
+            for (const change of findPendingChanges.removals) {
+                const fromRow = change.fromRow;
+                const index = state.rowToCodes[fromRow].indexOf(change.code);
+                if (index > -1) {
+                    state.rowToCodes[fromRow].splice(index, 1);
+                    delete state.codesToRow[change.code];
+                }
+            }
+
+            // Apply moves
+            for (const change of findPendingChanges.moves) {
+                // Remove from old location
+                const fromIndex = state.rowToCodes[change.fromRow].indexOf(change.code);
+                if (fromIndex > -1) {
+                    state.rowToCodes[change.fromRow].splice(fromIndex, 1);
+                }
+                
+                // Add to new location
+                state.rowToCodes[change.toRow].push(change.code);
+                state.codesToRow[change.code] = change.toRow;
+            }
+
+            findPendingChanges.moves = [];
+            findPendingChanges.removals = [];
+            renderFindPending();
+            saveState();
+            setStatus('find', 'Changes committed and saved.');
+        }
+
+        // Find tab - Cancel changes
+        function cancelFindChanges() {
+            if (findPendingChanges.moves.length > 0 || findPendingChanges.removals.length > 0) {
+                if (confirm('Cancel all pending changes?')) {
+                    findPendingChanges.moves = [];
+                    findPendingChanges.removals = [];
+                    renderFindPending();
+                    setStatus('find', 'Cancelled all pending changes.');
+                }
+            } else {
+                setStatus('find', 'No pending changes to cancel.');
+            }
         }
 
         // Export/Import
