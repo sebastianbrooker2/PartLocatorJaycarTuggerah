@@ -359,9 +359,8 @@
         }
 
         .find-search-section {
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
+            display: block;
+            text-align: center;
             padding-top: 30px;
         }
 
@@ -399,7 +398,7 @@
                     <!-- Jaycar link (shows after search) -->
                     <div id="jaycar-link-section" style="display: none; margin-top: 10px; text-align: center;">
                         <a id="jaycar-link" href="#" target="_blank" style="text-decoration: none;">
-                            <button class="secondary">View on Jaycar Website</button>
+                            <button class="secondary">Search on Jaycar Website</button>
                         </a>
                     </div>
                 </div>
@@ -409,6 +408,11 @@
                     <div class="diagram-label" id="diagram-label">—</div>
                     <div class="diagram-grid" id="diagram-grid"></div>
                 </div>
+            </div>
+
+            <!-- Search Result Message (shows after search) -->
+            <div id="search-result-message" style="display: none; margin-top: 20px; text-align: center; padding: 15px; background: #e8f4f8; border-radius: 8px; font-size: 16px; font-weight: 500;">
+                <span id="result-message-text"></span>
             </div>
 
             <!-- Move/Remove Section (shows after finding a part) -->
@@ -874,6 +878,7 @@
                 document.getElementById('find-move-section').style.display = 'none';
                 document.getElementById('jaycar-link-section').style.display = 'none';
                 document.getElementById('find-add-section').style.display = 'none';
+                document.getElementById('search-result-message').style.display = 'none';
                 setStatus('find', 'Enter a code to search.');
                 return;
             }
@@ -884,6 +889,7 @@
                 document.getElementById('find-move-section').style.display = 'none';
                 document.getElementById('jaycar-link-section').style.display = 'none';
                 document.getElementById('find-add-section').style.display = 'none';
+                document.getElementById('search-result-message').style.display = 'none';
                 return;
             }
 
@@ -897,16 +903,20 @@
                 currentSearchedCode = code;
                 updateDiagram(row);
                 document.getElementById('current-code').textContent = code;
+                document.getElementById('result-message-text').textContent = `✓ Found: ${code} is in ${row}`;
+                document.getElementById('search-result-message').style.display = 'block';
                 document.getElementById('find-move-section').style.display = 'block';
                 document.getElementById('find-add-section').style.display = 'none';
                 setStatus('find', `Found: ${code} is in ${row}`);
             } else {
                 currentSearchedCode = code;
                 updateDiagram(null);
+                document.getElementById('result-message-text').textContent = `✗ Not found: ${code} is not in any row`;
+                document.getElementById('search-result-message').style.display = 'block';
                 document.getElementById('find-move-section').style.display = 'none';
                 document.getElementById('add-code-display').textContent = code;
                 document.getElementById('find-add-section').style.display = 'block';
-                setStatus('find', `Not found: ${code} is not in any row. Add it below.`);
+                setStatus('find', `Not found: ${code} is not in any row`);
             }
         }
 
